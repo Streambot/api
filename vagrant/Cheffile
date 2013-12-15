@@ -1,0 +1,8 @@
+#!/usr/bin/env ruby
+#^syntax detection
+
+site 'http://community.opscode.com/api/v1'
+
+cookbook 'golang'
+cookbook 'chef-golang',
+	:git => "https://github.com/NOX73/chef-golang"
