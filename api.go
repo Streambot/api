@@ -15,9 +15,9 @@ func main() {
 //Service Definition 
 type V1 struct { 
     gorest.RestService `root:"/v1/" consumes:"application/json" produces:"application/json"` 
-    index gorest.EndPoint `method:"GET" path:"/" output:"string"`
+    hello gorest.EndPoint `method:"GET" path:"/hello/{Name:string}" output:"string"`
 }
 
-func(serv V1) Index() (out string) {
-    return "Hello world!"
+func(serv V1) Hello(Name string) (out string) {
+    return "Hello world " + Name + "!"
 }

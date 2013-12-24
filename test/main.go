@@ -4,7 +4,7 @@ import (
 	"github.com/hoisie/web"
 )
 
-func main() {
+func TestHello() {
 	web.Get("/", func() string {
 		return "Hello world!"
 	})

@@ -12,6 +12,9 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   # options are documented and commented below. For a complete reference,
   # please see the online documentation at vagrantup.com.
 
+  config.omnibus.chef_version = :latest
+  config.berkshelf.enabled = true
+
   # Every Vagrant virtual environment requires a box to build off of.
   config.vm.box = "precise64"
 
@@ -24,7 +27,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   # Create a forwarded port mapping which allows access to a specific port
   # within the machine from a port on the host machine. In the example below,
   # accessing "localhost:8080" will access port 80 on the guest machine.
-  config.vm.network :forwarded_port, guest: 80, host: 8080
+  config.vm.network :forwarded_port, guest: 8080, host: 8080
 
   # Create a private network, which allows host-only access to the machine
   # using a specific IP.
@@ -90,25 +93,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   # some recipes and/or roles.
   #
   config.vm.provision :chef_solo do |chef|
-    chef.cookbooks_path = ["vagrant/cookbooks", "vagrant/site-cookbooks"]
-    chef.add_recipe "updater"
-    chef.add_recipe "api"
-    chef.add_recipe "golang"
-    chef.add_recipe "golang::packages"
-    chef.add_recipe "chef-golang"
-  #
-  #   # You may also specify custom JSON attributes:
-  chef.json = { 
-  	:go => {
-  		:version => "1.2",
-  		:scm => true,
-      :packages => [
-        "code.google.com/p/gorest",
-        "github.com/hoisie/web"
-      ]
-  	}
-  }
-
+    chef.add_recipe "chef-streambot-api::vagrant"
   end
 
   # Enable provisioning with chef server, specifying the chef server URL,
