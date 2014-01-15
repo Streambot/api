@@ -1,9 +1,6 @@
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
 
-
-abort("Missing cookbooks directory. Should run 'cd vagrant && librarian-chef install && cd -' first.") if !(test ?d, "vagrant/cookbooks")
-
 # Vagrantfile API/syntax version. Don't touch unless you know what you're doing!
 VAGRANTFILE_API_VERSION = "2"
 
@@ -86,14 +83,20 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   #   puppet.manifest_file  = "site.pp"
   # end
 
-  config.omnibus.chef_version = :latest
-
   # Enable provisioning with chef solo, specifying a cookbooks path, roles
   # path, and data_bags path (all relative to this Vagrantfile), and adding
   # some recipes and/or roles.
   #
   config.vm.provision :chef_solo do |chef|
+    chef.log_level = :debug
+    chef.file_cache_path = "/vagrant"
     chef.add_recipe "chef-streambot-api::vagrant"
+    puts chef.json
+    chef.json = {
+      "go" => {
+        "gopath" => "/opt/go:/vagrant"
+      }
+    }
   end
 
   # Enable provisioning with chef server, specifying the chef server URL,
