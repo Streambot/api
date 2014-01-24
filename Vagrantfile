@@ -24,7 +24,10 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   # Create a forwarded port mapping which allows access to a specific port
   # within the machine from a port on the host machine. In the example below,
   # accessing "localhost:8080" will access port 80 on the guest machine.
+  config.vm.network :forwarded_port, guest: 80,   host: 8083
   config.vm.network :forwarded_port, guest: 8080, host: 8080
+  config.vm.network :forwarded_port, guest: 8125, host: 8125, protocol: 'udp'
+  config.vm.network :forwarded_port, guest: 8082, host: 8082
 
   # Create a private network, which allows host-only access to the machine
   # using a specific IP.
@@ -91,12 +94,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     chef.log_level = :debug
     chef.file_cache_path = "/vagrant"
     chef.add_recipe "chef-streambot-api::vagrant"
-    puts chef.json
-    chef.json = {
-      "go" => {
-        "gopath" => "/opt/go:/vagrant"
-      }
-    }
+    chef.add_recipe "graphite"
   end
 
   # Enable provisioning with chef server, specifying the chef server URL,
