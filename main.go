@@ -8,7 +8,13 @@ import (
 	stdlog "log"
     "os"
     "github.com/op/go-logging"
+    "github.com/jessevdk/go-flags"
+    "fmt"
 )
+
+type Options struct {
+    ConfigFilepath string `short:"c" long:"config" description:"File path of configuration file"`
+}
 
 var log = logging.MustGetLogger("streambot-api")
 
@@ -38,22 +44,33 @@ func NewConfigurationFromJSONFile(file string) (err error, config Config) {
     if err != nil {
         return
     }
-    json.Unmarshal(buf, &config)
+    err = json.Unmarshal(buf, &config)
     return
 }
 
-func ReadConfig() Config {
-	file := "./config.json"
+func ReadConfig(file string) Config {
 	err, config := NewConfigurationFromJSONFile(file)
 	if err != nil {
-		log.Fatal("Unexpected error on loading configuration from JSON file `%s`: %v", file, err)
+		errMsgFormat := "Unexpected error on loading configuration from JSON file `%s`: %v"
+		log.Fatal(fmt.Sprintf(errMsgFormat, file, err))
 	}
 	return config
 }
 
-var config = ReadConfig()
+var config Config
 
 func init() {
+	var options Options
+	var parser = flags.NewParser(&options, flags.Default)
+    if _, err := parser.Parse(); err != nil {
+    	fmt.Println(fmt.Sprintf("Error when parsing arguments: %v", err))
+        os.Exit(1)
+    }
+    if options.ConfigFilepath == "" {
+    	fmt.Println("Missing a valid configuration file specification argument. Usage: -c <config_file>")
+    	os.Exit(1)	
+    }
+    config = ReadConfig(options.ConfigFilepath)
 	// Customize the output format
     logging.SetFormatter(logging.MustStringFormatter("%{message}"))
     // Setup one stdout and one syslog backend.
