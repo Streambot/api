@@ -46,11 +46,12 @@ func (db *GraphDatabase) GetChannelWithUid(uid string) (err error, ch *Channel) 
 		return
 	}
 	if vs := res.Vertices(); vs != nil {
-		if len(vs) > 1 {
+		numVertices := len(vs)
+		if numVertices > 1 {
 			errMsgFormat := "Unexpectedly Rexster backend returned more than one vertex, given `%v`"
 			errMsg := fmt.Sprintf(errMsgFormat, vs)
 			err = errors.New(errMsg)
-		} else {
+		} else if numVertices == 1 {
 			vertex := vs[0]
 			ch = &Channel{vertex.Map["uid"].(string), vertex.Map["name"].(string)}
 		}
@@ -96,10 +97,13 @@ func (db *GraphDatabase) GetSubscriptionsForChannelWithUid(uid string) (err erro
 		err = errors.New(fmt.Sprintf("Failed to query subscribed channels at Rexster:", err))
 	}
 	if vs := res.Vertices(); vs != nil {
-		chs = make([]Channel, len(vs))
-		for i := range vs {
-			vertex := vs[i]
-			chs[i] = Channel{vertex.Map["uid"].(string), vertex.Map["name"].(string)}	
+		numVertices := len(vs)
+		if numVertices > 0 {
+			chs = make([]Channel, numVertices)
+			for i := range vs {
+				vertex := vs[i]
+				chs[i] = Channel{vertex.Map["uid"].(string), vertex.Map["name"].(string)}	
+			}
 		}
 	} else {
 		errMsgFormat := "Unexpectedly Rexster backend returned no vertex for channel " +
