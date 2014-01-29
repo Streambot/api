@@ -84,6 +84,8 @@ func init() {
     logging.SetBackend(logBackend, syslogBackend)
     if config.Debug == true {
     	logging.SetLevel(logging.DEBUG, "streambot")
+    } else {
+    	logging.SetLevel(logging.INFO, "streambot")
     }
 }
 
