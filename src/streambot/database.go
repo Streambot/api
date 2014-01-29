@@ -91,7 +91,7 @@ func (db *GraphDatabase) SaveChannelSubscription(
 }
 
 func (db *GraphDatabase) GetSubscriptionsForChannelWithUid(uid string) (err error, chs []Channel) {
-	script := fmt.Sprintf("g.V(\"uid\",%s).out.loop(1){it.loops < 100}{true}.dedup", uid)
+	script := fmt.Sprintf("g.V(\"uid\",\"%s\").out.loop(1){it.loops < 100}{true}.dedup", uid)
 	res, err := db.Graph.Eval(script)
 	if err != nil {
 		err = errors.New(fmt.Sprintf("Failed to query subscribed channels at Rexster:", err))
@@ -100,8 +100,7 @@ func (db *GraphDatabase) GetSubscriptionsForChannelWithUid(uid string) (err erro
 		numVertices := len(vs)
 		if numVertices > 0 {
 			chs = make([]Channel, numVertices)
-			for i := range vs {
-				vertex := vs[i]
+			for idx, vertex := range vs {
 				chs[i] = Channel{vertex.Map["uid"].(string), vertex.Map["name"].(string)}	
 			}
 		}

@@ -253,7 +253,8 @@ func TestSaveNewChannelSubscriptionInGraph(t *testing.T) {
 	}
 }
 
-func TestGetChannelSubscriptions (t* testing.T) {
+func TestGetChannelSubscriptions(t *testing.T) {
+
 	GRAPH 					:= "foobarbar"
 	CHANNEL_ID 				:= uuid.New()
 	SUBSCRIBED_CHANNEL_ID 	:= uuid.New()
