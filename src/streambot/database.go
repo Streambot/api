@@ -45,6 +45,10 @@ func (db *GraphDatabase) GetChannelWithUid(uid string) (err error, ch *Channel) 
 		err = errors.New(fmt.Sprintf("Failed to query vertices at Rexster:", err))
 		return
 	}
+	if res == nil {
+		err = errors.New(fmt.Sprintf("Rexster backend did not respond"))
+		return
+	}
 	if vs := res.Vertices(); vs != nil {
 		numVertices := len(vs)
 		if numVertices > 1 {
@@ -95,13 +99,18 @@ func (db *GraphDatabase) GetSubscriptionsForChannelWithUid(uid string) (err erro
 	res, err := db.Graph.Eval(script)
 	if err != nil {
 		err = errors.New(fmt.Sprintf("Failed to query subscribed channels at Rexster:", err))
+		return
+	}
+	if res == nil {
+		err = errors.New(fmt.Sprintf("Rexster backend did not respond"))
+		return
 	}
 	if vs := res.Vertices(); vs != nil {
 		numVertices := len(vs)
 		if numVertices > 0 {
 			chs = make([]Channel, numVertices)
 			for idx, vertex := range vs {
-				chs[i] = Channel{vertex.Map["uid"].(string), vertex.Map["name"].(string)}	
+				chs[idx] = Channel{vertex.Map["uid"].(string), vertex.Map["name"].(string)}	
 			}
 		}
 	} else {
