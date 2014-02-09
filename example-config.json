@@ -1,0 +1,13 @@
+{
+	"server": {
+		"port": 8080
+	},
+	"database": {
+		"graph": "streambot",
+		"hosts": ["localhost:8182", "localhost:8183"]
+	},
+	"stats": {
+		"port": 8125
+	},
+	"debug": true
+}

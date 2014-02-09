@@ -4,7 +4,7 @@ import(
 	"errors"
 	"fmt"
 )
-import rexster "github.com/sqs/go-rexster-client"
+import rexster "github.com/mbiermann/go-rexster-client"
 
 type Database interface {
 	SaveChannel(ch *Channel) (err error)
@@ -24,9 +24,18 @@ type GraphDatabase struct {
 	Graph rexster.Graph
 }
 
-func NewGraphDatabase(graph_name string, host string, port uint16) (db *GraphDatabase) {
-	var r = rexster.Rexster{host, port, false}
-	var g = rexster.Graph{graph_name, r}
+func NewGraphDatabase(graph_name string, hosts []string) (db *GraphDatabase, err error) {
+	r, err := rexster.NewRexster(&rexster.RexsterOptions{
+		Hosts: hosts,
+		Debug: true,
+		NodeReanimationAfterSeconds: 300,
+	})
+	if err != nil {
+		errMsgFormat := "Unexpected error when intializing Rexster cluster client: %v"
+		err = errors.New(fmt.Sprintf(errMsgFormat, err))
+		return
+	}
+	var g = rexster.Graph{graph_name, *r}
 	db = &GraphDatabase{g}
 	return
 }
@@ -42,7 +51,7 @@ func (db *GraphDatabase) SaveChannel(ch *Channel) (err error) {
 func (db *GraphDatabase) GetChannelWithUid(uid string) (err error, ch *Channel) {
 	res, err := db.Graph.QueryVertices("uid", uid)
 	if err != nil {
-		err = errors.New(fmt.Sprintf("Failed to query vertices at Rexster:", err))
+		err = errors.New(fmt.Sprintf("Failed to query vertices at Rexster with error: %v", err))
 		return
 	}
 	if res == nil {

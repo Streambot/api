@@ -1,0 +1,6 @@
+gom 'code.google.com/p/go-uuid/uuid'
+gom 'github.com/mbiermann/go-cluster'
+gom 'github.com/mbiermann/go-rexster-client', :branch => 'feature/go-cluster'
+gom 'github.com/op/go-logging'
+gom 'github.com/laurent22/ripple'
+gom 'github.com/jessevdk/go-flags'

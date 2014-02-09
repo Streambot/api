@@ -27,8 +27,7 @@ type StatsConfig struct {
 }
 
 type DatabaseConfig struct {
-	Port  uint16 `json:"port"`
-	Host  string `json:"host"`
+	Hosts []string `json:"hosts"`
 	Graph string `json:"graph"`
 }
 
@@ -90,10 +89,13 @@ func init() {
 }
 
 func main() {
-	db := streambot.NewGraphDatabase(
+	db, err := streambot.NewGraphDatabase(
 		config.Database.Graph, 
-		config.Database.Host, 
-		config.Database.Port)
+		config.Database.Hosts,
+	)
+	if err != nil {
+		log.Fatalf("Unexpected error when intializing graph database driver: %v", err)
+	}
 	api := streambot.NewAPI(db)
 	errChan := make(chan error, 1)
 	basePath := "/v1/"
@@ -113,7 +115,7 @@ func main() {
 	}()
 	<- api.Closed
 	close(errChan)
-	err := <- errChan
+	err = <- errChan
 	if err != nil {
 		log.Error("Unexpected error occurred when starting API: %v", err)
 	}

@@ -95,6 +95,16 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     chef.file_cache_path = "/vagrant"
     chef.add_recipe "chef-streambot-api::vagrant"
     chef.add_recipe "graphite"
+    chef.json = {
+      "streambot_api" => {
+        "home" => "/vagrant"
+      },
+      "gom_packages" => {
+        "github.com/mbiermann/go-rexster-client" => { 
+          "branch" => "feature/go-cluster" 
+        }
+      }
+    }
   end
 
   # Enable provisioning with chef server, specifying the chef server URL,

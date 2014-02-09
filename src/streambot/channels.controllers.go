@@ -56,11 +56,12 @@ func(ctrl *ChannelController) Put(ctx *ripple.Context) {
   // Calculate database call duration and track in statter
   duration := afterDB.Sub(beforeDB)/time.Millisecond
   log.Debug("Database call SaveChannel in channels.Put took %d", duration)
-  fmt.Fprintln(ctrl.StatConn, fmt.Sprintf("db.SaveChannel:%d|ms", duration))
-  // Evaluate errors
-  if err != nil {
+  if err == nil {
+    fmt.Fprintln(ctrl.StatConn, fmt.Sprintf("db.SaveChannel:%d|ms", duration))
+  } else {
+    // Evaluate errors
     ctx.Response.Status = 501
-    log.Error("Unexpected error when save Channel `%v` at Rexster backend: %v", ch, err)
+    log.Error("Database controller returned unexpected error on save Channel `%v`: %v", ch, err)
     return
   }
   ctx.Response.Body = PutChannelOutData{ch.Id}
@@ -142,8 +143,8 @@ func(ctrl *ChannelController) PostSubscriptions(ctx *ripple.Context) {
   fmt.Fprintln(ctrl.StatConn, fmt.Sprintf("db.SaveChannelSubscription:%d|ms", duration))
   if err != nil {
     ctx.Response.Status = 501
-    errMsgFormat := "Unexpected error when save subscription from Channel with Id `%s` to Channel" +
-    " with Id `%s` happend on `%d` at Rexster backend: %v"
+    errMsgFormat := "Database controller returned unexpected error on save subscription from " +
+    "Channel with Id `%s` to Channel with Id `%s`, happend on `%d`: %v"
     log.Error(errMsgFormat, fromChannelId, req.ToChannelId, req.Time, err)
     return
   }
