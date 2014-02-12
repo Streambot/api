@@ -97,7 +97,13 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     chef.add_recipe "graphite"
     chef.json = {
       "streambot_api" => {
-        "home" => "/vagrant"
+        "user" => {
+          "name" => "vagrant",
+          "group" => "vagrant",
+          "home" => "/home/vagrant"
+        },
+        "home" => "/vagrant",
+        "src" => "/vagrant"
       },
       "gom_packages" => {
         "github.com/mbiermann/go-rexster-client" => { 
