@@ -21,8 +21,8 @@ import (
 //
 
 
-type PostChannelData struct {
-	Name string
+type PostNewChannelRequest struct {
+	Name string `json:"name"`
 }
 
 type PostNewChannelResponse struct {
@@ -85,7 +85,7 @@ func TestAPIPutChannelSavesChannelInDatabase(t *testing.T) {
 	}()
 	t.Logf("Continue")
 	// Create a PUT request to store a new Channel
-	b, err := json.Marshal(PostChannelData{CHANNEL})
+	b, err := json.Marshal(PostNewChannelRequest{CHANNEL})
 	if err != nil {
 		t.Fatalf("Unexpected error '%v' on marchalling JSON body for Channel creation POST "+
 			"request.", err)
