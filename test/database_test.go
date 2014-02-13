@@ -7,7 +7,6 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"strings"
-	"strconv"
 	"io/ioutil"
 	"encoding/json"
 	"regexp"
@@ -33,13 +32,10 @@ func MockRexsterServerAndInstantiateGraphDatabase(
 	// Set up a mock server to handle vertex creation request
 	r = httptest.NewServer(http.HandlerFunc(handler))
 	t.Logf("Server spawned on %s", r.URL)
-	// Determine server host and port to initialize graph database
-	serverUrlParts := strings.Split(strings.Split(r.URL, "http://")[1], ":")
-	host := serverUrlParts[0]
-	port, err := strconv.Atoi(serverUrlParts[1])
-	if err == nil {
-		// Initialize graph database to be verified
-		db = streambot.NewGraphDatabase(graph, host, uint16(port))
+	// Initialize graph database to be verified
+	db, err = streambot.NewGraphDatabase(graph, []string{strings.Split(r.URL, "http://")[1]})
+	if err != nil {
+		t.Fatalf("Unexpected error when creating graph database client: %v", err)
 	}
 	return 
 }
@@ -205,34 +201,29 @@ func TestSaveNewChannelSubscriptionInGraph(t *testing.T) {
 
 	// Set up a mock server to handle subscription edge creation request
 	handler := func(w http.ResponseWriter, r *http.Request) {
-        // Verify request method is GET
-        if r.Method != "GET" {
-        	msgFormat := "Expected request method to be `GET`, given `%s`"
-			t.Fatalf(msgFormat, r.Method)
-        }
+        
         // Verify URL is of expected shape
-        expectedURL := fmt.Sprintf("/graphs/%s/tp/gremlin", GRAPH)
-        script := fmt.Sprintf(
-        	"subs=g.V('uid', '%s')" +
-				".out('subscribe').has('id', g.V('uid', '%s').next().id);" +
-				"if(!subs.hasNext()){" +
-				"e=g.addEdge(g.V('uid','%s').next(),g.V('uid','%s').next()," +
-				"'subscribe',[time:%d]);g.commit();e" +
-				"}else{g.V('uid', '%s').outE('subscribe')}", 
-			FROM_CHANNEL_UID, TO_CHANNEL_UID, FROM_CHANNEL_UID, 
-			TO_CHANNEL_UID, TIME, FROM_CHANNEL_UID,)
-		q := url.Values{"script": []string{script}}
-		expectedURL = fmt.Sprintf("%s?%s", expectedURL, q.Encode())
-        if r.URL.String() != expectedURL {
-        	msgFormat := "Expected request URL to be `%s`, given `%s`"
-			t.Fatalf(msgFormat, expectedURL, r.URL.String())
-        }
-		t.Logf("Received request on %s", r.URL)
-		// Return an empty string to gain a 200
-		resFormat := "{\"results\":[{\"time\":%d,\"_id\":\"%s\",\"_type\":\"edge\"," +
-		"\"_outV\":%d,\"_inV\":%d,\"_label\":\"subscribe\"}],\"success\":true,\"version\":" +
-		"\"2.4.0\",\"queryTime\":23.049033}"
-		res := fmt.Sprintf(resFormat, TIME, SUBSCRIPTION_ID, FROM_CHANNEL_ID, TO_CHANNEL_ID)
+		t.Logf("\nReceived request on %s\n", r.URL.String())
+        var res string
+        if r.URL.String() == fmt.Sprintf("/graphs/%s/vertices?key=uid&value=%s", GRAPH, FROM_CHANNEL_UID) {
+			// Return an empty string to gain a 200
+			resFormat := "{\"results\":[{\"uid\":\"%s\",\"_id\":%d,\"_type\":\"vertex\"}]," +
+			"\"success\":true,\"version\":\"2.4.0\",\"queryTime\":23.049033}"
+			res = fmt.Sprintf(resFormat, FROM_CHANNEL_UID, FROM_CHANNEL_ID)
+        } else if r.URL.String() == fmt.Sprintf("/graphs/%s/vertices?key=uid&value=%s", GRAPH, TO_CHANNEL_UID) {
+        	// Return an empty string to gain a 200
+			resFormat := "{\"results\":[{\"uid\":\"%s\",\"_id\":%d,\"_type\":\"vertex\"}]," +
+			"\"success\":true,\"version\":\"2.4.0\",\"queryTime\":23.049033}"
+			res = fmt.Sprintf(resFormat, TO_CHANNEL_UID, TO_CHANNEL_ID)
+        } else if r.URL.String() == fmt.Sprintf("/graphs/%s/edges/", GRAPH) {
+        	// Return an empty string to gain a 200
+			resFormat := "{\"results\":[{\"time\":%d,\"_id\":%d,\"_type\":\"edge\"," +
+			"\"_outV\":%d,\"_inV\":%d,\"_label\":\"subscribe\"}],\"success\":true,\"version\":" +
+			"\"2.4.0\",\"queryTime\":23.049033}"
+			res = fmt.Sprintf(resFormat, TIME, SUBSCRIPTION_ID, FROM_CHANNEL_ID, TO_CHANNEL_ID)
+    	} else {
+    		t.Fatalf("Unexpected request on URL %s", r.URL.String())
+    	}
 		fmt.Fprintln(w, res)
 		// Switch tracker flag for server call
 		serverCalled = true
@@ -254,7 +245,6 @@ func TestSaveNewChannelSubscriptionInGraph(t *testing.T) {
 }
 
 func TestGetChannelSubscriptions(t *testing.T) {
-
 	GRAPH 					:= "foobarbar"
 	CHANNEL_ID 				:= uuid.New()
 	SUBSCRIBED_CHANNEL_ID 	:= uuid.New()
@@ -272,7 +262,7 @@ func TestGetChannelSubscriptions(t *testing.T) {
         }
         // Verify URL is of expected shape
         expectedURL := fmt.Sprintf("/graphs/%s/tp/gremlin", GRAPH)
-        script := fmt.Sprintf("g.V(\"uid\",%s).out.loop(1){it.loops < 100}{true}.dedup", CHANNEL_ID)
+        script := fmt.Sprintf("g.V(\"uid\",\"%s\").out.loop(1){it.loops < 50}{true}.dedup", CHANNEL_ID)
 		q := url.Values{"script": []string{script}}
 		expectedURL = fmt.Sprintf("%s?%s", expectedURL, q.Encode())
         if r.URL.String() != expectedURL {

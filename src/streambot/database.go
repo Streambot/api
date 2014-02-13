@@ -45,10 +45,15 @@ func (db *GraphDatabase) SaveChannel(ch *Channel) (err error) {
 	var properties = map[string]interface{}{"name": ch.Name, "uid": ch.Id}
 	vertex := rexster.NewVertex("", properties)
 	_, err = db.Graph.CreateOrUpdateVertex(vertex)
+	fmt.Println(fmt.Sprintf("Vertex is %v", vertex))
+	if err != nil {
+		errMsgFormat := "Unexpected error when saving Channel vertex `%v`: %v"
+		err = errors.New(fmt.Sprintf(errMsgFormat, vertex, err))
+	}
 	return
 }
 
-func (db *GraphDatabase) GetChannelWithUid(uid string) (err error, ch *Channel) {
+func GetVertexWithUid(db *GraphDatabase, uid string) (v *rexster.Vertex, err error) {
 	res, err := db.Graph.QueryVertices("uid", uid)
 	if err != nil {
 		err = errors.New(fmt.Sprintf("Failed to query vertices at Rexster with error: %v", err))
@@ -65,14 +70,23 @@ func (db *GraphDatabase) GetChannelWithUid(uid string) (err error, ch *Channel) 
 			errMsg := fmt.Sprintf(errMsgFormat, vs)
 			err = errors.New(errMsg)
 		} else if numVertices == 1 {
-			vertex := vs[0]
-			ch = &Channel{vertex.Map["uid"].(string), vertex.Map["name"].(string)}
+			v = vs[0]
+		} else {
+			errMsgFormat := "Unexpectedly Rexster backend returned no vertex, given `%v`"
+			errMsg := fmt.Sprintf(errMsgFormat, res)
+			err = errors.New(errMsg)
 		}
-	} else {
-		errMsgFormat := "Unexpectedly Rexster backend returned no vertex, given `%v`"
-		errMsg := fmt.Sprintf(errMsgFormat, res)
-		err = errors.New(errMsg)
 	}
+	return
+}
+
+func (db *GraphDatabase) GetChannelWithUid(uid string) (err error, ch *Channel) {
+	vertex, err := GetVertexWithUid(db, uid)
+	if err != nil {
+		err = errors.New(fmt.Sprintf("Failed to query vertices at Rexster with error: %v", err))
+		return
+	}
+	ch = &Channel{vertex.Map["uid"].(string), vertex.Map["name"].(string)}
 	return
 }
 
@@ -81,30 +95,42 @@ func (db *GraphDatabase) SaveChannelSubscription(
 	toChannelId string, 
 	creationTime int64,
 ) (err error) {
-	script := fmt.Sprintf(
-		"subs=g.V('uid', '%s')" +
-        	".out('subscribe').has('id', g.V('uid', '%s').next().id);" +
-        	"if(!subs.hasNext()){" +
-        	"e=g.addEdge(g.V('uid','%s').next(),g.V('uid','%s').next()," +
-        	"'subscribe',[time:%d]);g.commit();e" +
-			"}else{g.V('uid', '%s').outE('subscribe')}",
-		fromChannelId, 
-		toChannelId, 
-		fromChannelId, 
-		toChannelId, 
-		creationTime,
-		fromChannelId,
-	)
-	_, err = db.Graph.Eval(script)
+	var outV *rexster.Vertex
+	outV, err = GetVertexWithUid(db, fromChannelId)
+	fmt.Printf("OutV %v", outV)
 	if err != nil {
-		err = errors.New(fmt.Sprintf("Failed to query vertices at Rexster:", err))
+		errMsgFormat := "Unexpected error when querying Channel vertex with ID `%s`: %v"
+		err = errors.New(fmt.Sprintf(errMsgFormat, fromChannelId, err))
 		return
+	}
+	if outV == nil {
+		errMsgFormat := "Unexpected missing Channel vertex with ID `%s`"
+		err = errors.New(fmt.Sprintf(errMsgFormat, fromChannelId))
+		return	
+	}
+	inV, err := GetVertexWithUid(db, toChannelId)
+	if err != nil {
+		errMsgFormat := "Unexpected error when querying Channel vertex with ID `%s`: %v"
+		err = errors.New(fmt.Sprintf(errMsgFormat, toChannelId, err))
+		return
+	}
+	if inV == nil {
+		errMsgFormat := "Unexpected missing Channel vertex with ID `%s`"
+		err = errors.New(fmt.Sprintf(errMsgFormat, toChannelId))
+		return	
+	}
+	fmt.Printf("InV %v", inV)
+	edge := rexster.NewEdge("", outV.Id(), "subscribe", inV.Id(), map[string]interface{}{"time": creationTime})
+	_, err = db.Graph.CreateOrUpdateEdge(edge)
+	if err != nil {
+		errMsgFormat := "Unexpected error when saving Channel Subscription edge `%v`: %v"
+		err = errors.New(fmt.Sprintf(errMsgFormat, edge, err))
 	}
 	return
 }
 
 func (db *GraphDatabase) GetSubscriptionsForChannelWithUid(uid string) (err error, chs []Channel) {
-	script := fmt.Sprintf("g.V(\"uid\",\"%s\").out.loop(1){it.loops < 100}{true}.dedup", uid)
+	script := fmt.Sprintf("g.V(\"uid\",\"%s\").out.loop(1){it.loops < 50}{true}.dedup", uid)
 	res, err := db.Graph.Eval(script)
 	if err != nil {
 		err = errors.New(fmt.Sprintf("Failed to query subscribed channels at Rexster:", err))
