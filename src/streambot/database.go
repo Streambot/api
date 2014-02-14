@@ -95,7 +95,7 @@ func (db *GraphDatabase) SaveChannelSubscription(
 	toChannelId string, 
 	creationTime int64,
 ) (err error) {
-	format := "g.addEdge(g.V(\"uid\",\"%s\"),g.V(\"uid\",\"%s\"),\"subscribe\")"
+	format := "g.addEdge(g.V(\"uid\",\"%s\").next(),g.V(\"uid\",\"%s\").next(),\"subscribe\")"
 	_, err = db.Graph.Eval(fmt.Sprintf(format, fromChannelId, toChannelId))
 	if err != nil {
 		errMsgFormat := "Unexpected error when saving Channel Subscription: %v"
