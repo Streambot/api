@@ -32,10 +32,11 @@ type DatabaseConfig struct {
 }
 
 type Config struct {
-	Server 	 ServerConfig 	`json:"server"`
-	Database DatabaseConfig `json:"database"`
-	Stats	 StatsConfig	`json:"stats"`
-	Debug	 bool			`json:"debug"`
+	Server 	 			ServerConfig 	`json:"server"`
+	Database 			DatabaseConfig 	`json:"database"`
+	Stats	 			StatsConfig		`json:"stats"`
+	SubsStatsLogfile	string 			`json:"subscriptionStatsLogfile"`
+	Debug	 			bool			`json:"debug"`
 }
 
 func NewConfigurationFromJSONFile(file string) (err error, config Config) {
@@ -96,7 +97,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Unexpected error when intializing graph database driver: %v", err)
 	}
-	api := streambot.NewAPI(db)
+	api := streambot.NewAPI(db, config.SubsStatsLogfile)
 	errChan := make(chan error, 1)
 	basePath := "/v1/"
 	log.Info("Running API server on Port %d at base path %s", config.Server.Port, basePath)
