@@ -95,33 +95,8 @@ func (db *GraphDatabase) SaveChannelSubscription(
 	toChannelId string, 
 	creationTime int64,
 ) (err error) {
-	var outV *rexster.Vertex
-	outV, err = GetVertexWithUid(db, fromChannelId)
-	fmt.Printf("OutV %v", outV)
-	if err != nil {
-		errMsgFormat := "Unexpected error when querying Channel vertex with ID `%s`: %v"
-		err = errors.New(fmt.Sprintf(errMsgFormat, fromChannelId, err))
-		return
-	}
-	if outV == nil {
-		errMsgFormat := "Unexpected missing Channel vertex with ID `%s`"
-		err = errors.New(fmt.Sprintf(errMsgFormat, fromChannelId))
-		return	
-	}
-	inV, err := GetVertexWithUid(db, toChannelId)
-	if err != nil {
-		errMsgFormat := "Unexpected error when querying Channel vertex with ID `%s`: %v"
-		err = errors.New(fmt.Sprintf(errMsgFormat, toChannelId, err))
-		return
-	}
-	if inV == nil {
-		errMsgFormat := "Unexpected missing Channel vertex with ID `%s`"
-		err = errors.New(fmt.Sprintf(errMsgFormat, toChannelId))
-		return	
-	}
-	fmt.Printf("InV %v", inV)
-	edge := rexster.NewEdge("", outV.Id(), "subscribe", inV.Id(), map[string]interface{}{"time": creationTime})
-	_, err = db.Graph.CreateOrUpdateEdge(edge)
+	format := "g.addEdge(g.V(\"uid\",\"%s\"),g.V(\"uid\",\"%s\"),\"subscribe\")"
+	_, err = db.Graph.Eval(fmt.Sprintf(format, fromChannelId, toChannelId))
 	if err != nil {
 		errMsgFormat := "Unexpected error when saving Channel Subscription edge `%v`: %v"
 		err = errors.New(fmt.Sprintf(errMsgFormat, edge, err))
