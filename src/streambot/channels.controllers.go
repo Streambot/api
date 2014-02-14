@@ -17,11 +17,11 @@ var log = logging.MustGetLogger("streambot-api")
 type ChannelController struct {
   Database        Database
   StatConn        net.Conn
-  GetSubsStatFile os.File
+  GetSubsStatFile *os.File
 }
 
 func NewChannelController(db Database, statConn net.Conn, getSubsStatFilename string) (ctrl *ChannelController, err error) {
-  file, err := os.OpenFile(getSubsStatFilename, os.O_RDWR|os.O_APPEND, 0660);
+  file, err := os.OpenFile(getSubsStatFilename, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0660);
   if err != nil {
     format := "Unexpected error when creating stats log file for subscription retrievals at `%s`: %v"
     err = errors.New(fmt.Sprintf(format, getSubsStatFilename, err))

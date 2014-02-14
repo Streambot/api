@@ -70,7 +70,12 @@ func NewAPI(db Database, subsStatsLogfile string) (api *API) {
   }
   api.StatConn = conn
   app := ripple.NewApplication()
-  app.RegisterController("channels", NewChannelController(db, api.StatConn, subsStatsLogfile))
+  channelController, err :=  NewChannelController(db, api.StatConn, subsStatsLogfile)
+  if err != nil {
+    log.Error("Error when instantiate Channel controller: %v", err)
+    return 
+  }
+  app.RegisterController("channels", channelController)
   app.AddRoute(ripple.Route{ Pattern: ":_controller/:id/:_action" })
   app.AddRoute(ripple.Route{ Pattern: ":_controller/:id/" })
   app.AddRoute(ripple.Route{ Pattern: ":_controller" })
