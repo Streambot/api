@@ -262,7 +262,8 @@ func TestGetChannelSubscriptions(t *testing.T) {
         }
         // Verify URL is of expected shape
         expectedURL := fmt.Sprintf("/graphs/%s/tp/gremlin", GRAPH)
-        script := fmt.Sprintf("g.V(\"uid\",\"%s\").out.loop(1){it.loops < 50}{true}.dedup", CHANNEL_ID)
+        scriptFormat := "g.V(\"uid\",\"%s\").as('x').out.gather.scatter.loop('x'){it.loops < 5}{true}.dedup()"
+        script := fmt.Sprintf(scriptFormat, CHANNEL_ID)
 		q := url.Values{"script": []string{script}}
 		expectedURL = fmt.Sprintf("%s?%s", expectedURL, q.Encode())
         if r.URL.String() != expectedURL {

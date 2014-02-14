@@ -130,7 +130,8 @@ func (db *GraphDatabase) SaveChannelSubscription(
 }
 
 func (db *GraphDatabase) GetSubscriptionsForChannelWithUid(uid string) (err error, chs []Channel) {
-	script := fmt.Sprintf("g.V(\"uid\",\"%s\").out.loop(1){it.loops < 50}{true}.dedup", uid)
+	scriptFormat := "g.V(\"uid\",\"%s\").as('x').out.gather.scatter.loop('x'){it.loops < 5}{true}.dedup()"
+	script := fmt.Sprintf(scriptFormat, uid)
 	res, err := db.Graph.Eval(script)
 	if err != nil {
 		err = errors.New(fmt.Sprintf("Failed to query subscribed channels at Rexster:", err))
