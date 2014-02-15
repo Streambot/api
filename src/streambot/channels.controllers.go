@@ -5,20 +5,18 @@ import(
   "encoding/json"
   "github.com/laurent22/ripple"
   "github.com/op/go-logging"
-  "net"
-  "fmt"
   "time"
 )
 
 var log = logging.MustGetLogger("streambot-api")
 
 type ChannelController struct {
-  Database        Database
-  StatConn        net.Conn
+  Database  Database
+  Stats     *Statter
 }
 
-func NewChannelController(db Database, statConn net.Conn) *ChannelController {
-  return &ChannelController{db, statConn}
+func NewChannelController(db Database, stats *Statter) *ChannelController {
+  return &ChannelController{db, stats}
 }
 
 type PutChannelOutData struct {
@@ -30,7 +28,7 @@ type PutChannelInData struct {
 }
 
 func(ctrl *ChannelController) Put(ctx *ripple.Context) {
-  fmt.Fprintln(ctrl.StatConn, "channels.put:1|c")
+  ctrl.Stats.Count("channels.put")
   // Read the request into a raw buffer and unmarshal buffer to further handle request
   body, err := ioutil.ReadAll(ctx.Request.Body)
   if err != nil {
@@ -57,7 +55,7 @@ func(ctrl *ChannelController) Put(ctx *ripple.Context) {
   duration := afterDB.Sub(beforeDB)/time.Millisecond
   log.Debug("Database call SaveChannel in channels.Put took %d", duration)
   if err == nil {
-    fmt.Fprintln(ctrl.StatConn, fmt.Sprintf("db.SaveChannel:%d|ms", duration))
+    ctrl.Stats.Time("db.SaveChannel", int(duration))
   } else {
     // Evaluate errors
     ctx.Response.Status = 501
@@ -73,14 +71,13 @@ type GetChannelOutData struct {
 }
 
 func(ctrl *ChannelController) Get(ctx *ripple.Context) {
-  fmt.Fprintln(ctrl.StatConn, "channels.get.all:1|c")
+  ctrl.Stats.Count("channels.get")
   id := ctx.Params["id"]
   if id == "" {
     ctx.Response.Status = 501
     log.Error("Missing Id on Channel GET")
     return
   }
-  fmt.Fprintln(ctrl.StatConn, fmt.Sprintf("channels.get.id.%s:1|c", id))
   // Track timestamps in nanosecond precision before and after the database call
   beforeDB := time.Now()
   err, ch := ctrl.Database.GetChannelWithUid(id)
@@ -88,7 +85,7 @@ func(ctrl *ChannelController) Get(ctx *ripple.Context) {
   // Calculate database call duration and track in statter
   duration := afterDB.Sub(beforeDB)/time.Millisecond
   log.Debug("Database call GetChannelWithUid in channels.Get took %d", duration)
-  fmt.Fprintln(ctrl.StatConn, fmt.Sprintf("db.GetChannelWithUid:%d|ms", duration))
+  ctrl.Stats.Time("db.GetChannelWithUid", int(duration))
   if err != nil {
     ctx.Response.Status = 501
     log.Error("Unexpected error when fetch Channel with Id `%s` at Rexster backend: %v", id, err)
@@ -109,14 +106,13 @@ type PostChannelSubscriptionsInData struct {
 }
 
 func(ctrl *ChannelController) PostSubscriptions(ctx *ripple.Context) {
-  fmt.Fprintln(ctrl.StatConn, "channels.subscriptions.post.all:1|c")
+  ctrl.Stats.Count("channels.subscriptions.post")
   fromChannelId := ctx.Params["id"]
   if fromChannelId == "" {
     ctx.Response.Status = 400
     log.Error("Missing Id on Channel POST")
     return
   }
-  fmt.Fprintln(ctrl.StatConn, fmt.Sprintf("channels.subscriptions.post.id.%s:1|c", fromChannelId))
   // Read the request into a raw buffer and unmarshal buffer to post handle request
   body, err := ioutil.ReadAll(ctx.Request.Body)
   if err != nil {
@@ -140,7 +136,7 @@ func(ctrl *ChannelController) PostSubscriptions(ctx *ripple.Context) {
   // Calculate database call duration and track in statter
   duration := afterDB.Sub(beforeDB)/time.Millisecond
   log.Debug("Database call SaveChannelSubscription in channels.PostSubscriptions took %d", duration)
-  fmt.Fprintln(ctrl.StatConn, fmt.Sprintf("db.SaveChannelSubscription:%d|ms", duration))
+  ctrl.Stats.Time("db.SaveChannelSubscription", int(duration))
   if err != nil {
     ctx.Response.Status = 501
     errMsgFormat := "Database controller returned unexpected error on save subscription from " +
@@ -152,14 +148,13 @@ func(ctrl *ChannelController) PostSubscriptions(ctx *ripple.Context) {
 }
 
 func(ctrl *ChannelController) GetSubscriptions(ctx *ripple.Context) {
-  fmt.Fprintln(ctrl.StatConn, "channels.subscriptions.get.all:1|c")
+  ctrl.Stats.Count("channels.subscriptions.get")
   id := ctx.Params["id"]
   if id == "" {
     ctx.Response.Status = 501
     log.Error("Missing Channel Id when fetch subscriptions")
     return
   }
-  fmt.Fprintln(ctrl.StatConn, fmt.Sprintf("channels.subscriptions.get.id.%s:1|c", id))
   // Track timestamps in nanosecond precision before and after the database call
   beforeDB := time.Now()
   err, chs := ctrl.Database.GetSubscriptionsForChannelWithUid(id)
@@ -167,7 +162,7 @@ func(ctrl *ChannelController) GetSubscriptions(ctx *ripple.Context) {
   // Calculate database call duration and track in statter
   duration := afterDB.Sub(beforeDB)/time.Millisecond
   log.Debug("Database call GetSubscriptionsForChannelWithUid in channels.GetSubscriptions took %d", duration)
-  fmt.Fprintln(ctrl.StatConn, fmt.Sprintf("db.GetSubscriptionsForChannelWithUid:%d|ms", duration))
+  ctrl.Stats.Time("db.GetSubscriptionsForChannelWithUid", int(duration))
   if err != nil {
     ctx.Response.Status = 501
     errMsgFormat := "Unexpected error when fetch Channel subscriptions for Channel with Id `%s` " +

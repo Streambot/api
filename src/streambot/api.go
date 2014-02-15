@@ -14,7 +14,6 @@ type API struct {
   App       ripple.Application
   GoClose   chan bool
   Server    APIServer
-  StatConn  net.Conn
   Closed    chan bool
 }
 
@@ -53,7 +52,6 @@ func(api API) Serve(Port int, Route string, ErrorChannel chan error) {
       errMsg := fmt.Sprintf("An error occurred when launching API server: %v", err)
       ErrorChannel <- errors.New(errMsg)
     }
-    api.StatConn.Close()
     api.Closed <- true
   }()
 }
@@ -64,13 +62,12 @@ func(api API) Shutdown() {
 
 func NewAPI(db Database) (api *API) {
   api = new(API)
-  conn, err := net.Dial("udp", ":8125")
-  if err != nil {
-    log.Error("Error when instantiate UDP statting connection: %v", err)
-  }
-  api.StatConn = conn
   app := ripple.NewApplication()
-  channelController :=  NewChannelController(db, api.StatConn)
+  statter, err := NewLocalStatsDStatter()
+  if err != nil {
+    log.Error("Error when instantiate StatsD statter: %v", err)
+  }
+  channelController :=  NewChannelController(db, statter)
   app.RegisterController("channels", channelController)
   app.AddRoute(ripple.Route{ Pattern: ":_controller/:id/:_action" })
   app.AddRoute(ripple.Route{ Pattern: ":_controller/:id/" })
