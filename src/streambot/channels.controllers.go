@@ -192,7 +192,7 @@ func(ctrl *ChannelController) GetSubscriptions(ctx *ripple.Context) {
     log.Error(errMsgFormat, id)
     return
   }
-  ctrl.GetSubsStatFile.WriteString(fmt.Sprintf("%d %d %d\n", beforeDB.Unix(), len(chs), duration))
+  ctrl.GetSubsStatFile.WriteString(fmt.Sprintf("%d %d %d\n", beforeDB.UnixNano(), len(chs), duration))
   outChs := make([]GetChannelOutData, len(chs))
   for i := range chs {
     outChs[i] = GetChannelOutData{chs[i].Id, chs[i].Name}
