@@ -8,8 +8,6 @@ import(
   "net"
   "fmt"
   "time"
-  "errors"
-  "os"
 )
 
 var log = logging.MustGetLogger("streambot-api")
@@ -17,18 +15,10 @@ var log = logging.MustGetLogger("streambot-api")
 type ChannelController struct {
   Database        Database
   StatConn        net.Conn
-  GetSubsStatFile *os.File
 }
 
-func NewChannelController(db Database, statConn net.Conn, getSubsStatFilename string) (ctrl *ChannelController, err error) {
-  file, err := os.OpenFile(getSubsStatFilename, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0660);
-  if err != nil {
-    format := "Unexpected error when creating stats log file for subscription retrievals at `%s`: %v"
-    err = errors.New(fmt.Sprintf(format, getSubsStatFilename, err))
-    return
-  }
-  ctrl = &ChannelController{db, statConn, file}
-  return 
+func NewChannelController(db Database, statConn net.Conn) *ChannelController {
+  return &ChannelController{db, statConn}
 }
 
 type PutChannelOutData struct {
@@ -192,7 +182,6 @@ func(ctrl *ChannelController) GetSubscriptions(ctx *ripple.Context) {
     log.Error(errMsgFormat, id)
     return
   }
-  ctrl.GetSubsStatFile.WriteString(fmt.Sprintf("%d %d %d\n", beforeDB.UnixNano(), len(chs), duration))
   outChs := make([]GetChannelOutData, len(chs))
   for i := range chs {
     outChs[i] = GetChannelOutData{chs[i].Id, chs[i].Name}

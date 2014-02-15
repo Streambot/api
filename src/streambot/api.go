@@ -62,7 +62,7 @@ func(api API) Shutdown() {
   api.GoClose <- true
 }
 
-func NewAPI(db Database, subsStatsLogfile string) (api *API) {
+func NewAPI(db Database) (api *API) {
   api = new(API)
   conn, err := net.Dial("udp", ":8125")
   if err != nil {
@@ -70,11 +70,7 @@ func NewAPI(db Database, subsStatsLogfile string) (api *API) {
   }
   api.StatConn = conn
   app := ripple.NewApplication()
-  channelController, err :=  NewChannelController(db, api.StatConn, subsStatsLogfile)
-  if err != nil {
-    log.Error("Error when instantiate Channel controller: %v", err)
-    return 
-  }
+  channelController :=  NewChannelController(db, api.StatConn)
   app.RegisterController("channels", channelController)
   app.AddRoute(ripple.Route{ Pattern: ":_controller/:id/:_action" })
   app.AddRoute(ripple.Route{ Pattern: ":_controller/:id/" })
