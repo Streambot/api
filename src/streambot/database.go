@@ -105,7 +105,7 @@ func (db *GraphDatabase) SaveChannelSubscription(
 }
 
 func (db *GraphDatabase) GetSubscriptionsForChannelWithUid(uid string) (err error, chs []Channel) {
-	scriptFormat := "g.V(\"uid\",\"%s\").as('x').out.gather.scatter.loop('x'){it.loops < 5}{true}.dedup()"
+	scriptFormat := "g.V(\"uid\",\"%s\").as('x').out.loop('x'){it.loops < 5}{true}.dedup()"
 	script := fmt.Sprintf(scriptFormat, uid)
 	res, err := db.Graph.Eval(script)
 	if err != nil {
